@@ -123,7 +123,7 @@ Repo:
 Repo:
 - GitHub repository: simple_shell
 
-| 5. Simple shell 0.4 |
+| 4. Simple shell 0.4 |
 | --- |
 
 Simple shell 0.3 +
@@ -134,7 +134,7 @@ Simple shell 0.3 +
 Repo:
 - GitHub repository: simple_shell
 
-| 6. Simple shell 1.0 |
+| 5. Simple shell 1.0 |
 | --- |
 
 Simple shell 0.4 +
