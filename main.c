@@ -1,51 +1,28 @@
-#include "file.h"
+#include "minishell.h"
+
 
 /**
- * main - Main function
- * @argc: Number of arguments
- * @argv: List of arguments
- * @envp: List of enviroments
- * Return: 0
+ * main - entry point
+ *
+ * @argc: number of arguments given to the program
+ * @argv: arguments list
+ *
+ * Return: returns the value of the last executed command
  */
-int main(int argc, char **argv, char *envp[])
+int main(int argc, char **argv)
 {
-	vars_t vars = {NULL, NULL};
-	size_t len_buffer = 0;
-	int i;
+	char *cmdline = NULL;
+	char **cmdargs;
+	char prompt[] = "(hsh) ";
+	Bool status = true;
 
-	(void)argc;
-	(void)argv;
+	name = (argv[0] != NULL) ? argv[0] : NULL;
 
-	_puts("$ ");
-
-	while ((getline(&(vars.buffer), &len_buffer, stdin)) != -1)
+	while (status)
 	{
-
-		if (!strcmp(vars.buffer, "env\n"))
-		{
-			for (i = 0 ; envp[i] ; i++)
-			{
-				_puts(envp[i]);
-				_putchar('\n');
-			}
-		}
-
-		vars.array_tokens = tokenizer(vars.buffer, " \n");
-		if (vars.array_tokens == NULL)
-		{
-			_puts("$ ");
-			continue;
-		}
-
-		if (check_for_builtins(&vars) == NULL)
-		{
-			_puts("No encontrado ");
-			_puts(vars.array_tokens[0]);
-			_putchar('\n');
-		}
-		free_shell(&vars);
-		_puts("$ ");
+		write(1, prompt, strlen(prompt));
+		cmdline = get_user_input();
 	}
-	_putchar('\n');
-	exit(0);
+
+	return (0);
 }
