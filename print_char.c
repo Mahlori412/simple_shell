@@ -9,24 +9,20 @@
  */
 int _putchar(char c)
 {
-	return (write(1, &c, 1));
+return (write(1, &c, 1));
 }
 
 /**
- * _puts - Write a string
- * @s: String to print
- *
- * Return: Count of characters from string.
+ * _print - prints a string
+ * @str: pointer to the string to print
+ * Return: void
  */
-int _puts(char *s)
+void _print(char *str)
 {
-	int i = 0;
-
-	while (s[i])
-	{
-		_putchar(s[i]);
-		i++;
-	}
-
-	return (i);
+int i = 0;
+while (str[i])
+{
+_putchar(str[i]);
+i++;
+}
 }

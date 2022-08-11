@@ -2,54 +2,73 @@
 #define FILE_H
 
 #include <stdio.h>
-#include <stdlib.h>
-#include <unistd.h>
 #include <string.h>
+#include <stdlib.h>
 #include <sys/types.h>
 #include <sys/stat.h>
+#include <unistd.h>
 #include <sys/wait.h>
-#include <limits.h>
 #include <signal.h>
 #include <fcntl.h>
-#include <errno.h>
 
-/**
- * struct variables - Struct to save arguments
- * @buffer: Argument
- * @array_tokens: Array of tokens
- *
- * Description: Is a struct for save arguments send by users.
- */
-typedef struct variables
-{
-	char *buffer;
-	char **array_tokens;
-} vars_t;
+#define PATH_MAX 1024
+extern char **environ;
 
-/**
- * struct builtins - Struct for execute function from match
- * @name: match
- * @f: Function
- *
- * Description: Is a struct for execute a function from match
- */
-typedef struct builtins
-{
-	char *name;
-	void (*f)(vars_t *);
-} builtins_t;
+int main(int argc, char *argv[]);
 
-void (*check_for_builtins(vars_t *vars))(vars_t *vars);
-char **tokenizer(char *buffer, char *delimiter);
+/*used in _strings.c file*/
+char *_strcat(char *dest, char *src);
+int _strcmp(char *s1, char *s2);
+char *_strcpy(char *dest, char *src);
+char *_strdup(char *str);
+int _strlen(const char *s);
 
-void file1(vars_t *vars);
-void file2(vars_t *vars);
-void exit_2(vars_t *vars);
+/*used in envset_unset.c*/
+int shell_environ(void);
+int _setenv(char *var_name, char *var_value);
+char *var_build(char *var_name, char *var_value);
+int _unsetenv(char *var_name);
 
+/*used in cd_handler.c file*/
+char *_getcwd(void);
+int cd_home(void);
+int cd_prev(void);
+int _cd(char **args);
+
+/*used in ctrl_exit.c file*/
+void print_prompt(void);
+char *ignore_space(char *str);
+void ctrl_c(int signum);
+void shell_exit(char **args, char *line);
+
+/*used in execute.c file*/
+unsigned int _occurence(char *s);
+char **_strtotokens(char *str);
+int check_file_status(char *filename);
+int _execute(char **tokens, char *line, char *args);
+
+/*used in read_line.c file*/
+char *read_line2(void);
+void free_args(char **args);
+char *read_line(void);
+
+/*used in _realloc.c file*/
+void *_realloc(void *ptr, unsigned int old_size, unsigned int new_size);
+
+/*used in builtin_parser.c file*/
+int builtin_parser(char **tokens);
+
+/*used in path_handler.c file*/
+int get_path(char **args);
+char *get_env(char *path);
+char *cmd_build(char *token, char *dir_value);
+
+/*used in print_char.c file*/
 int _putchar(char c);
-int _puts(char *s);
-void print_env(vars_t *vars);
-void print_list(vars_t *vars);
-void free_shell(vars_t *vars);
+void _print(char *str);
 
-#endif
+int shell_help(char **args);
+/*history*/
+int get_history(char *input);
+int display_history(void);
+#endif /*FILE_H*/
