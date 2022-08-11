@@ -1,165 +1,94 @@
-#include "main.h"
+#include "file.h"
 
-/*
- * int main(int ac, char **av, char **env)
- * {
- *	 printf("%p\n", environ[0]);
- *	 printf("%p\n", env[0]);
- *	 printf("%s\n", _getenv("PATH"));
- *	 printf("%s\n", _getenv("PWD"));
- *	 printenv();
- *	 return (0);
- * }
+/**
+ * envFunc - prints the environment
+ * @build: input build
+ * Return: Always 1
  */
-
-/**
-  * printenv - displays current environment
-  *
-  */
-
-void printenv(void)
+int envFunc(config *build)
 {
-	unsigned int i = 0;
-
-	while (environ[i])
-	{
-		_puts(environ[i]);
-		_putchar('\n');
-		i++;
-	}
+	printList(build->env);
+	return (1);
 }
 
 /**
-  * _getenv - gets an environment variable
-  * @name: variable to search in the environment
-  *
-  * Return: pointer to the value in the environment, NULL if there is no match
-  */
-char *_getenv(const char *name)
+ * setenvFunc - adds env variable if it does not exist;
+ * modify env variable if it does
+ * @build: input build
+ * Return: Always 1
+ */
+int setenvFunc(config *build)
 {
-	unsigned int i = 0;
-	int diff;
-	int varlen = _strlen(name);
+	register int index, len;
+	static char buffer[BUFSIZE];
 
-	while (environ[i])
+	if (countArgs(build->args) != 3)
 	{
-		diff = _strncmp(environ[i], name, varlen);
-		if (diff == 0)
-			return (environ[i] + varlen + 1);
-		i++;
+		errno = EWSIZE;
+		errorHandler(build);
+		return (1);
 	}
-	return (NULL);
+	len = _strlen(build->args[1]) + _strlen(build->args[2]) + 2;
+	_strcat(buffer, build->args[1]);
+	_strcat(buffer, "=");
+	_strcat(buffer, build->args[2]);
+	insertNullByte(buffer, len - 1);
+	index = searchNode(build->env, build->args[1]);
+	if (index == -1)
+	{
+		addNodeEnd(&build->env, buffer);
+		insertNullByte(buffer, 0);
+		return (1);
+	}
+	deleteNodeAtIndex(&build->env, index);
+	addNodeAtIndex(&build->env, index, buffer);
+	insertNullByte(buffer, 0);
+	return (1);
 }
 
 /**
-  * envloc - locates a variable in the environment
-  * @name: variable to be located in the environment
-  *
-  * Return: location in environment array on success, -1 on error
-  */
-int envloc(const char *name)
+ * unsetenvFunc - deletes env variable if exists;
+ * will only accept valid variables names
+ * @build: input build
+ * Return: Always 1
+ */
+int unsetenvFunc(config *build)
 {
-	unsigned int i = 0;
-	int diff;
-	int varlen = _strlen(name);
+	register int foundVar, i = 1;
+	_Bool foundMatch = false;
 
-	while (environ[i])
+	while (build->args[i])
 	{
-		diff = _strncmp(environ[i], name, varlen);
-		if (diff == 0)
-			return (i);
-		i++;
-	}
-	return (-1);
-}
-
-/**
-  * _setenv - changes or adds an environment variable
-  * @name: name of variable to be changed/added
-  * @value: value of newly set variable
-  * @overwrite: previous value of newly set variable
-  *
-  * Return: 0 on success, -1 on error
-  */
-int _setenv(const char *name, const char *value, int overwrite)
-{
-	char *nameCpy = _strdup(name), *valueCpy = _strdup(value);
-	int i, len = 0, loc = envloc(name);
-	char **new_environ;
-	char *temp = strcpycat(nameCpy, "=");
-
-	free(nameCpy);
-	nameCpy = strcpycat(temp, valueCpy);
-	free(valueCpy);
-	free(temp);
-
-	if (loc != -1)
-	{
-		if (overwrite == 0)
-			return (0);
-		environ[loc] = nameCpy;
-		return (0);
-	}
-
-	while (environ[len])
-		len++;
-
-	new_environ = malloc(sizeof(*new_environ) * (len + 2));
-	if (!new_environ)
-	{
-		free(nameCpy);
-		return (-1);
-	}
-
-	for (i = 0; i < len; i++)
-		new_environ[i] = environ[i];
-
-	new_environ[i] = nameCpy;
-	free(nameCpy);
-	new_environ[i + 1] = NULL;
-
-	free(environ);
-	free_array(environ);
-	environ = new_environ;
-
-	return (0);
-}
-
-/**
-  * _unsetenv - deletes the variable name from the environment
-  * @name: name of variable to be deleted
-  *
-  * Return: 0 on success, -1 on error
-  */
-int _unsetenv(const char *name)
-{
-	int loc = envloc(name);
-	int i, j, len = 0;
-	char **new_environ;
-
-	while (environ[len])
-		len++;
-
-	if (loc != -1)
-	{
-		free(environ[loc]);
-		new_environ = malloc(sizeof(*new_environ) * len);
-
-		j = 0;
-		for (i = 0; i < len; i++)
+		if (_isalpha(build->args[i][0]) || build->args[i][0] == '_')
 		{
-			if (i != loc)
+			foundVar = searchNode(build->env, build->args[i]);
+			if (foundVar > -1)
 			{
-				new_environ[i] = environ[j];
-				j++;
+				deleteNodeAtIndex(&build->env, foundVar);
+				foundMatch = true;
 			}
 		}
-		new_environ[i] = NULL;
-
-		free(environ);
-		free_array(environ);
-		environ = new_environ;
+		i++;
 	}
+	if (foundMatch == false)
+	{
+		errno = ENOSTRING;
+		errorHandler(build);
+	}
+	return (1);
+}
 
-	return (0);
+/**
+ * _isalpha - checks if c is an alphabetic character
+ * @c: potential alphabetical value
+ * Return: if c is a letter, returns 1. Otherwise, return 0.
+ */
+int _isalpha(int c)
+{
+	if (c > 64 && c < 91)
+		return (1);
+	else if (c > 96 && c < 123)
+		return (1);
+	else
+		return (0);
 }
