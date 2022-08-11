@@ -1,113 +1,92 @@
-#include "file.h"
+#include "hsh.h"
 
 /**
- * _occurence - return the number of occurence of a string
- * @s: string to check
- * Return: integer
- */
-unsigned int _occurence(char *s)
+  * execute - execute a command
+  * @info: arguments passed
+  *
+  * Return: status
+  */
+int execute(info_t *info)
 {
-	int i, cnt = 0;
+	const builtin_t *builtin = get_builtin(*info->tokens);
 
-	for (i = 0; s[i] != '\0'; i++)
+	if (builtin)
 	{
-		/*test for all delimeters*/
-		if (s[i]  == ' ' || s[i] == '\t' || s[i] == '\n')
-			cnt++;
+		return (builtin->f(info));
 	}
-
-	return (cnt);
+	if (_strchr(*info->tokens, '/') == -1)
+	{
+		free_list(&info->path);
+		info->path = str_to_list(get_dict_val(info->env, "PATH"), ':');
+		info->exe = search_path(info, info->path);
+	}
+	else
+	{
+		info->exe = _strdup(*info->tokens);
+	}
+	if (info->exe && access(info->exe, X_OK) == 0)
+	{
+		return (_execute(info));
+	}
+	if (info->exe)
+	{
+		perrorl_default(*info->argv, info->lineno, "Permission denied",
+				*info->tokens, NULL);
+		info->status = 126;
+	}
+	else
+	{
+		perrorl_default(*info->argv, info->lineno, "not found",
+				*info->tokens, NULL);
+		info->status = 127;
+	}
+	return (info->status);
 }
+
+
 /**
- *_strtotokens - split a sentence into multiple words.
- *@str: the string passed as argument.
- *Return: tokens
+ * _execute - fork and exec the current command
+ * @info: shell information
+ *
+ * Return: exit status of the child process
  */
-char **_strtotokens(char *str)
+int _execute(info_t *info)
 {
-	int i = 0;
-	const char separator[] = " \t\n";
-	int spaces = _occurence(str);
-	char **tokens = malloc(sizeof(char *) * (spaces + 1));
-	char *token;
+	char *exe, **argv, **env;
 
-	if (!tokens)
+	switch (fork())
 	{
-		fprintf(stderr, "sh: allocation error\n");
-		exit(1);
-	}
+	case 0:
+		exe = info->exe;
+		argv = info->tokens;
+		env = dict_to_env(info->env);
 
-	token = strtok(str, separator);
+		info->exe = NULL;
+		info->tokens = NULL;
+		free_info(info);
 
-	while (token != NULL)
-	{
-		tokens[i] = token;
-		token = strtok(NULL, separator);
-		i++;
-	}
-	tokens[i] = NULL;
-	return (tokens);
-}
-/**
- *check_file_status - checks whether a file exists
- *@filename:name of file
- *Return:0 - file is available, -1 otherwise
- */
-int check_file_status(char *filename)
-{
-	struct stat st;
+		execve(exe, argv, env);
+		perror(*argv);
 
-	if (stat(filename, &st) == -1)
-		return (-1);
-	return (0);
-}
-/**
- *_execute - executes a file given as input
- *@tokens:split tokens from stdin input
- *@line:line from stdin to free
- *Return:-1 (success), -1,otherwise
- */
-int _execute(char **tokens, char *line, char *args)
-{
-	char *err1, *err2, *err3;
-	pid_t cpid;
-	int status;
-	struct stat st;
+		if (info->file)
+			close(info->fileno);
 
-	/*handle when token is a builtin cmd or NULL*/
-	if (builtin_parser(tokens) == 0 || *tokens == NULL)
-	{
-		return (1);
+		free(exe);
+		free_tokens(&argv);
+		free_tokens(&env);
+		exit(EXIT_FAILURE);
+		break;
+	case -1:
+		perrorl_default(*info->argv, info->lineno, "Cannot fork", NULL);
+		info->status = 2;
+		break;
+	default:
+		wait(&info->status);
+		info->status = WEXITSTATUS(info->status);
+		break;
 	}
-	/*fork the process*/
-	cpid = fork();
-	if (cpid < 0)
-	{
-		perror("Error:fork->-1");
-		return (EXIT_FAILURE);
-	}
-/*child process*/
-	if (cpid == 0)
-	{
-		if (stat(*tokens, &st) != 0)
-		{
-			get_path(tokens);
-		}
-		if (execve(tokens[0], tokens, NULL) == -1)
-		{
-			err1 = strcat(*tokens, ": No such file or directory\n");
-			err2 = strcat(args, ":");
-			err3 = strcat(err2, err1);
-			write(STDERR_FILENO, err3, _strlen(err3));
-			/*free(err1);*/
-			/*free(err2);*/
-			/*free(err3);*/
-			free(line);
-			free(tokens);
-			exit(EXIT_FAILURE);
-		}
-		return (EXIT_SUCCESS);
-	}
-wait(&status);
-return (1);
+	free(info->exe);
+	info->exe = NULL;
+
+	return (info->status);
 }
